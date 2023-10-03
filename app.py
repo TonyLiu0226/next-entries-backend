@@ -1,4 +1,5 @@
 from flask import Flask, request
+from flask_cors import CORS
 from markupsafe import escape
 from dotenv import load_dotenv
 import os
@@ -10,7 +11,7 @@ import datetime
 
 app = Flask(__name__)
 
-
+CORS(app)
 # Load the environment variables from the .env file
 load_dotenv()
 
@@ -48,9 +49,11 @@ def add_entry():
         #adds to database
         directory = db.collection("Users").document(user).collection("posts").document(str(uuid4()))
         #splits date
-        formattedDate = datetime.datetime(int(date.split('-')[0]), int(date.split('-')[1]), int(date.split('-')[2]))
+        formattedDate = datetime.datetime(int(date.split('-')[0]), int(date.split('-')[1]), int(date.split('-')[2]), 12, 00, 00)
+    
         directory.set({"date": formattedDate, "content": content})
     except Exception as e:
+        print(e)
         return Response(f"Upload failed due to exception: {e}", status=500)
     
     return Response("Upload successful", status=200)
