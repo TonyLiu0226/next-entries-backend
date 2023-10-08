@@ -3,11 +3,13 @@ from flask_cors import CORS
 from markupsafe import escape
 from dotenv import load_dotenv
 import os
+import openai
 import firebase_admin
 from firebase_admin import firestore
 from flask import Response
 from uuid import uuid4
 import datetime
+from OpenAI.openai_functions import sentimentAnalysis
 
 app = Flask(__name__)
 
@@ -18,6 +20,8 @@ load_dotenv()
 # Application Default credentials are automatically created.
 firebase = firebase_admin.initialize_app()
 db = firestore.client()
+
+
 
 @app.route('/')
 def hello():
@@ -43,15 +47,19 @@ def add_entry():
         if 'content' in request_data:
             content = request_data['content']
     
+    #before uploading, check to see there is not already another entry for that day. If there is, prevent uploads
+
     try:
         if user == None or date == None or content == None:
             return Response(f"Upload failed, invalid fields", status=400)
-        #adds to database
+        #gets directory from database
         directory = db.collection("Users").document(user).collection("posts").document(str(uuid4()))
         #splits date
         formattedDate = datetime.datetime(int(date.split('-')[0]), int(date.split('-')[1]), int(date.split('-')[2]), 12, 00, 00)
-    
-        directory.set({"date": formattedDate, "content": content})
+        #gets the mood using sentiment analysis before uploading to database
+        mood = sentimentAnalysis(content)
+        #adds to databse
+        directory.set({"date": formattedDate, "content": content, "mood": mood})
     except Exception as e:
         print(e)
         return Response(f"Upload failed due to exception: {e}", status=500)
